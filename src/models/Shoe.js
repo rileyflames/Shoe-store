@@ -31,6 +31,11 @@ const shoeSchema = new mongoose.Schema(
     category: {
       type: String, // e.g., Running, Casual, Sports
     },
+      deleted:{
+        type: Boolean,
+        default: false
+      }
+    
   },
   {
     timestamps: true, // Adds createdAt and updatedAt

@@ -3,68 +3,82 @@ import Shoe from '../models/Shoe.js';
 
 // @desc   Get all shoes
 // @route  GET /api/shoes
-export const getShoes = async (req, res) => {
+export const getShoes = async (req, res, next) => {
   try {
-    const shoes = await Shoe.find();
-    // success?
-    res.status(200).json(shoes);
+    const shoes = await Shoe.find({ deleted: false });
+    res.json(shoes);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    next(err); // let our error handler deal with it
   }
 };
+
 
 // @desc   Get a single shoe
 // @route  GET /api/shoes/:id
-export const getShoeById = async (req, res) => {
+export const getShoeById = async (req, res, next) => {
   try {
     const shoe = await Shoe.findById(req.params.id);
-    if (!shoe) return res.status(404).json({ message: 'Shoe not found' });
-    //success?
-    res.status(200).json(shoe);
+
+    if (!shoe || shoe.deleted) {
+      res.status(404);
+      throw new Error('Shoe not found');
+    }
+
+    res.json(shoe);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    next(err); // Pass to the error handler
   }
 };
+
 
 // @desc   Create a new shoe
 // @route  POST /api/shoes
-export const createShoe = async (req, res) => {
+export const createShoe = async (req, res, next) => {
   try {
-    const newShoe = new Shoe(req.body);
-    const savedShoe = await newShoe.save();
-    //success?
-    res.status(201).json(savedShoe);
+    const newShoe = await Shoe.create(req.body);
+    res.status(201).json(newShoe);
   } catch (err) {
-    res.status(400).json({ message: err.message });
+    res.status(400); // tell middleware this is a bad request
+    next(err);
   }
 };
+
 
 // @desc   Update a shoe
 // @route  PUT /api/shoes/:id
-export const updateShoe = async (req, res) => {
+export const updateShoe = async (req, res, next) => {
   try {
-    const updatedShoe = await Shoe.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true, runValidators: true }
-    );
-    if (!updatedShoe) return res.status(404).json({ message: 'Shoe not found' });
-    // success?
-    res.status(200).json(updatedShoe);
+    const shoe = await Shoe.findById(req.params.id);
+    if (!shoe || shoe.deleted) {
+      res.status(404);
+      throw new Error('Shoe not found');
+    }
+
+    Object.assign(shoe, req.body);
+    await shoe.save();
+    res.json(shoe);
   } catch (err) {
-    res.status(400).json({ message: err.message });
+    next(err);
   }
 };
 
+
 // @desc   Delete a shoe
 // @route  DELETE /api/shoes/:id
-export const deleteShoe = async (req, res) => {
+export const deleteShoe = async (req, res, next) => {
   try {
-    const deleted = await Shoe.findByIdAndDelete(req.params.id);
-    if (!deleted) return res.status(404).json({ message: 'Shoe not found' });
-    //success?
-    res.status(200).json({ message: 'Shoe deleted' });
+    const shoe = await Shoe.findById(req.params.id);
+    if (!shoe || shoe.deleted) {
+      res.status(404);
+      throw new Error('Shoe not found or already deleted');
+    }
+
+    shoe.deleted = true;
+    await shoe.save();
+    res.json({ message: 'Shoe soft-deleted' });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    next(err);
   }
 };
+
+

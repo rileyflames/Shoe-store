@@ -1,6 +1,7 @@
 // src/app.js
 import express from 'express';
-import shoeRoutes from './routes/shoeRoutes.js'
+import shoeRoutes from './routes/shoeRoutes.js';
+import errorHandler from 'middleware/errorHandler.js';
 
 const app = express();
 
@@ -13,5 +14,15 @@ app.use('/api',shoeRoutes )
 app.get('/', (req, res) => {
   res.send('Shoe Store API is live!');
 });
+
+// 404 route for unmatched routes
+app.use((req, res, next)=>{
+  res.status(404);
+  next(new Error(`Not Found - ${req.originalUrl}`))
+})
+
+// custom error handler
+
+app.use(errorHandler);
 
 export default app;
